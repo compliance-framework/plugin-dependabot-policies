@@ -1,0 +1,626 @@
+{
+  "alerts": [
+    {
+      "number": 5,
+      "state": "dismissed",
+      "dependency": {
+        "package": {
+          "ecosystem": "go",
+          "name": "github.com/go-viper/mapstructure/v2"
+        },
+        "manifest_path": "go.mod",
+        "scope": "runtime",
+        "relationship": "unknown"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-2464-8j7c-4cjm",
+        "cve_id": null,
+        "summary": "go-viper's mapstructure May Leak Sensitive Information in Logs When Processing Malformed Data",
+        "description": "### Summary\n\nUse of this library in a security-critical context may result in leaking sensitive information, if used to process sensitive fields.\n\n### Details\n\nOpenBao (and presumably HashiCorp Vault) have surfaced error messages from `mapstructure` as follows:\n\nhttps://github.com/openbao/openbao/blob/98c3a59c040efca724353ca46ca79bd5cdbab920/sdk/framework/field_data.go#L43-L50\n\n```go\n\t\t\t_, _, err := d.getPrimitive(field, schema)\n\t\t\tif err != nil {\n\t\t\t\treturn fmt.Errorf(\"error converting input for field %q: %w\", field, err)\n\t\t\t}\n```\n\nwhere this calls `mapstructure.WeakDecode(...)`: https://github.com/openbao/openbao/blob/98c3a59c040efca724353ca46ca79bd5cdbab920/sdk/framework/field_data.go#L181-L193\n\n```go\n\nfunc (d *FieldData) getPrimitive(k string, schema *FieldSchema) (interface{}, bool, error) {\n\traw, ok := d.Raw[k]\n\tif !ok {\n\t\treturn nil, false, nil\n\t}\n\n\tswitch t := schema.Type; t {\n\tcase TypeBool:\n\t\tvar result bool\n\t\tif err := mapstructure.WeakDecode(raw, &result); err != nil {\n\t\t\treturn nil, false, err\n\t\t}\n\t\treturn result, true, nil\n```\n\nNotably, `WeakDecode(...)` eventually calls one of the decode helpers, which surfaces the original value via `strconv` helpers:\n\nhttps://github.com/go-viper/mapstructure/blob/8c61ec1924fcfa522f9fc6b4618c672db61d1a38/mapstructure.go#L720-L727\n\nhttps://github.com/go-viper/mapstructure/blob/8c61ec1924fcfa522f9fc6b4618c672db61d1a38/mapstructure.go#L791-L798\n\nhttps://github.com/go-viper/mapstructure/blob/8c61ec1924fcfa522f9fc6b4618c672db61d1a38/decode_hooks.go#L180\n\n& more. These are different code paths than are fixed in the previous iteration at https://github.com/go-viper/mapstructure/security/advisories/GHSA-fv92-fjc5-jj9h.\n\n### PoC\n\nTo reproduce with OpenBao:\n\n```\n$ podman run --pull=always -p 8300:8300 openbao/openbao:latest server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8300\n```\n\nand in a new tab:\n\n```\n$ BAO_TOKEN=root BAO_ADDR=http://localhost:8300 bao auth enable userpass\nSuccess! Enabled userpass auth method at: userpass/\n$ curl -X PUT -H \"X-Vault-Request: true\" -H \"X-Vault-Token: root\" -d '{\"ttl\":\"asdf\"}' \"http://localhost:8200/v1/auth/userpass/users/asdf\"\n\n--> server logs:\n\n2025-06-25T21:32:25.101-0500 [ERROR] core: failed to run existence check: error=\"error converting input for field \\\"ttl\\\": time: invalid duration \\\"asdf\\\"\"\n```\n\n### Impact\n\nThis is an information disclosure bug with little mitigation. See https://discuss.hashicorp.com/t/hcsec-2025-09-vault-may-expose-sensitive-information-in-error-logs-when-processing-malformed-data-with-the-kv-v2-plugin/74717 for a previous version. That version was fixed, but this is in the second part of that error message (starting at `'' expected a map, got 'string'` -- when the field type is `string` and a `map` is provided, we see the above information leak -- the previous example had a `map` type field with a `string` value provided).\n\nThis was rated 4.5 Medium by HashiCorp in the past iteration.",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-2464-8j7c-4cjm",
+            "type": "GHSA"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/go-viper/mapstructure/security/advisories/GHSA-2464-8j7c-4cjm"
+          },
+          {
+            "url": "https://github.com/go-viper/mapstructure/commit/742921c9ba2854d27baa64272487fc5075d2c39c"
+          },
+          {
+            "url": "https://pkg.go.dev/vuln/GO-2025-3900"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-2464-8j7c-4cjm"
+          }
+        ],
+        "published_at": "2025-08-21T14:37:19Z",
+        "updated_at": "2025-08-29T20:44:27Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "go",
+              "name": "github.com/go-viper/mapstructure/v2"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": "<= 2.3.0",
+            "first_patched_version": {
+              "identifier": "2.4.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N",
+            "score": 5.3
+          },
+          "cvss_v4": {
+            "vector_string": null,
+            "score": 0.0
+          }
+        },
+        "cvss": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N",
+          "score": 5.3
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-117",
+            "name": "Improper Output Neutralization for Logs"
+          }
+        ]
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "go",
+          "name": "github.com/go-viper/mapstructure/v2"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": "<= 2.3.0",
+        "first_patched_version": {
+          "identifier": "2.4.0"
+        }
+      },
+      "url": "https://api.github.com/repos/compliance-framework/plugin-dependabot/dependabot/alerts/5",
+      "html_url": "https://github.com/compliance-framework/plugin-dependabot/security/dependabot/5",
+      "created_at": "2025-08-21T14:46:21Z",
+      "updated_at": "2025-09-11T16:24:18Z",
+      "dismissed_at": "2025-09-11T16:24:18Z",
+      "dismissed_by": {
+        "login": "jonathandavies-CS",
+        "id": 183591104,
+        "node_id": "U_kgDOCvFgwA",
+        "avatar_url": "https://avatars.githubusercontent.com/u/183591104?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/jonathandavies-CS",
+        "html_url": "https://github.com/jonathandavies-CS",
+        "followers_url": "https://api.github.com/users/jonathandavies-CS/followers",
+        "following_url": "https://api.github.com/users/jonathandavies-CS/following{/other_user}",
+        "gists_url": "https://api.github.com/users/jonathandavies-CS/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/jonathandavies-CS/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/jonathandavies-CS/subscriptions",
+        "organizations_url": "https://api.github.com/users/jonathandavies-CS/orgs",
+        "repos_url": "https://api.github.com/users/jonathandavies-CS/repos",
+        "events_url": "https://api.github.com/users/jonathandavies-CS/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/jonathandavies-CS/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "dismissed_reason": "not_used",
+      "dismissed_comment": "Errors from mapstructure are not surfaced here",
+      "fixed_at": null,
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 4,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "go",
+          "name": "github.com/go-viper/mapstructure/v2"
+        },
+        "manifest_path": "go.mod",
+        "scope": "runtime",
+        "relationship": "unknown"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-fv92-fjc5-jj9h",
+        "cve_id": null,
+        "summary": "mapstructure May Leak Sensitive Information in Logs When Processing Malformed Data",
+        "description": "### Summary\n\nUse of this library in a security-critical context may result in leaking sensitive information, if used to process sensitive fields.\n\n### Details\n\nOpenBao (and presumably HashiCorp Vault) have surfaced error messages from `mapstructure` as follows:\n\nhttps://github.com/openbao/openbao/blob/98c3a59c040efca724353ca46ca79bd5cdbab920/sdk/framework/field_data.go#L43-L50\n\n```go\n\t\t\t_, _, err := d.getPrimitive(field, schema)\n\t\t\tif err != nil {\n\t\t\t\treturn fmt.Errorf(\"error converting input for field %q: %w\", field, err)\n\t\t\t}\n```\n\nwhere this calls `mapstructure.WeakDecode(...)`: https://github.com/openbao/openbao/blob/98c3a59c040efca724353ca46ca79bd5cdbab920/sdk/framework/field_data.go#L181-L193\n\n```go\n\nfunc (d *FieldData) getPrimitive(k string, schema *FieldSchema) (interface{}, bool, error) {\n\traw, ok := d.Raw[k]\n\tif !ok {\n\t\treturn nil, false, nil\n\t}\n\n\tswitch t := schema.Type; t {\n\tcase TypeBool:\n\t\tvar result bool\n\t\tif err := mapstructure.WeakDecode(raw, &result); err != nil {\n\t\t\treturn nil, false, err\n\t\t}\n\t\treturn result, true, nil\n```\n\nNotably, `WeakDecode(...)` eventually calls one of the decode helpers, which surfaces the original value:\n\nhttps://github.com/go-viper/mapstructure/blob/1a66224d5e54d8757f63bd66339cf764c3292c21/mapstructure.go#L679-L686\n\nhttps://github.com/go-viper/mapstructure/blob/1a66224d5e54d8757f63bd66339cf764c3292c21/mapstructure.go#L726-L730\n\nhttps://github.com/go-viper/mapstructure/blob/1a66224d5e54d8757f63bd66339cf764c3292c21/mapstructure.go#L783-L787\n\n& more.\n\n### PoC\n\nTo reproduce with OpenBao:\n\n```\n$ podman run -p 8300:8300 openbao/openbao:latest server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8300\n```\n\nand in a new tab:\n\n```\n$ BAO_TOKEN=root BAO_ADDR=http://localhost:8300 bao auth enable userpass\nSuccess! Enabled userpass auth method at: userpass/\n$ curl -X PUT -H \"X-Vault-Request: true\" -H \"X-Vault-Token: root\" -d '{\"password\":{\"asdf\":\"my-sensitive-value\"}}' \"http://localhost:8300/v1/auth/userpass/users/adsf\"\n{\"errors\":[\"error converting input for field \\\"password\\\": '' expected type 'string', got unconvertible type 'map[string]interface {}', value: 'map[asdf:my-sensitive-value]'\"]}\n```\n\n### Impact\n\nThis is an information disclosure bug with little mitigation. See https://discuss.hashicorp.com/t/hcsec-2025-09-vault-may-expose-sensitive-information-in-error-logs-when-processing-malformed-data-with-the-kv-v2-plugin/74717 for a previous version. That version was fixed, but this is in the second part of that error message (starting at `'' expected a map, got 'string'` -- when the field type is `string` and a `map` is provided, we see the above information leak -- the previous example had a `map` type field with a `string` value provided).\n\nThis was rated 4.5 Medium by HashiCorp in the past iteration.",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-fv92-fjc5-jj9h",
+            "type": "GHSA"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/go-viper/mapstructure/security/advisories/GHSA-fv92-fjc5-jj9h"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-fv92-fjc5-jj9h"
+          }
+        ],
+        "published_at": "2025-06-27T16:24:59Z",
+        "updated_at": "2025-06-27T16:24:59Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "go",
+              "name": "github.com/go-viper/mapstructure/v2"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": "< 2.3.0",
+            "first_patched_version": {
+              "identifier": "2.3.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N",
+            "score": 5.3
+          },
+          "cvss_v4": {
+            "vector_string": null,
+            "score": 0.0
+          }
+        },
+        "cvss": {
+          "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N",
+          "score": 5.3
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-532",
+            "name": "Insertion of Sensitive Information into Log File"
+          }
+        ]
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "go",
+          "name": "github.com/go-viper/mapstructure/v2"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": "< 2.3.0",
+        "first_patched_version": {
+          "identifier": "2.3.0"
+        }
+      },
+      "url": "https://api.github.com/repos/compliance-framework/plugin-dependabot/dependabot/alerts/4",
+      "html_url": "https://github.com/compliance-framework/plugin-dependabot/security/dependabot/4",
+      "created_at": "2025-06-27T16:30:16Z",
+      "updated_at": "2025-07-09T08:34:28Z",
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2025-07-09T08:34:28Z",
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 3,
+      "state": "open",
+      "dependency": {
+        "package": {
+          "ecosystem": "go",
+          "name": "github.com/open-policy-agent/opa"
+        },
+        "manifest_path": "go.mod",
+        "scope": "runtime",
+        "relationship": "unknown"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-6m8w-jc87-6cr7",
+        "cve_id": "CVE-2025-46569",
+        "summary": "OPA server Data API HTTP path injection of Rego",
+        "description": "### Impact\n\nWhen run as a server, OPA exposes an HTTP[ Data API](https://www.openpolicyagent.org/docs/latest/rest-api/#data-api) for reading and writing documents. Requesting a virtual document through the Data API entails policy evaluation, where a Rego query containing a single data document [reference](https://www.openpolicyagent.org/docs/latest/policy-language/#references) is constructed from the requested path. This query is then used for policy evaluation.\n\nA HTTP request path can be crafted in a way that injects Rego code into the constructed query. The evaluation result cannot be made to return any other data than what is generated by the requested path, but this path can be misdirected, and the injected Rego code can be crafted to make the query succeed or fail; opening up for oracle attacks or, given the right circumstances, erroneous policy decision results. Furthermore, the injected code can be crafted to be computationally expensive, resulting in a Denial Of Service (DoS) attack.\n\n**Users are only impacted if all of the following apply:**\n\n* OPA is deployed as a standalone server (rather than being used as a Go library)\n* The OPA server is exposed outside of the local host in an untrusted environment.\n* The configured [authorization policy](https://www.openpolicyagent.org/docs/latest/security/#authentication-and-authorization) does not do exact matching of the `input.path` attribute when deciding if the request should be allowed.\n\n**or, if all of the following apply:**\n\n* OPA is deployed as a standalone server.\n* The service connecting to OPA allows 3rd parties to insert unsanitised text into the path of the HTTP request to OPA’s Data API.\n\n**Note:** With **no** Authorization Policy configured for restricting API access (the default configuration), the RESTful Data API provides access for managing Rego policies; and the RESTful Query API facilitates advanced queries. Full access to these APIs provides both simpler, and broader access than what the security issue describes here can facilitate. As such, OPA servers exposed to a network are **not** considered affected by the attack described here if they are knowingly not restricting access through an Authorization Policy.\n\n### Patches\n\nFixed in OPA v1.4.0.\n\n### Workarounds\n\n#### Don’t publicly expose OPA’s RESTful APIs ####\n\nUnless necessary for production reasons, network access to OPA’s RESTful APIs should be limited to `localhost` and/or trusted networks. \nSince OPA v1.0, unless otherwise configured, the server listener defaults to `localhost`.\n\n#### Enable Authentication to Only Allow Access to Trusted Clients ####\n\nA configured [authentication](https://www.openpolicyagent.org/docs/latest/security/#authentication-and-authorization) scheme is a requirement when OPA is exposed in an untrusted environment. While requiring authentication alone doesn’t mitigate this attack, it effectively reduces the scope from untrusted clients to trusted clients.\n\n#### Perform Path Validation Using OPA’s Authorization Policy Functionality ####\n\nOPA can be configured to use an [Authorization Policy](https://www.openpolicyagent.org/docs/latest/security/#authentication-and-authorization) to validate all incoming requests.\nBy authoring the Authorization Policy to only accept paths corresponding to expected Rego package references, this attack can be fully mitigated.\n\nThe HTTP path in a Data API request is of the format `/v1/data/{path:.+}` (`/v0/data/{path:.+}`, for the v0 Data API), where `data/{path:.+}` directly corresponds to a reference to a virtual document, and a prefix of `{path:.+}` corresponds to a Rego `package` declaration. \nE.g. the HTTP path `v1/data/do/re/mi` corresponds to the data reference `data.do.re.mi`, where `do.re` is the package and `mi` is the rule in the following Rego module:\n\n```rego\npackage do.re\n\nmi if {\n\t...\n}\n```\n\nUnless otherwise [configured](https://www.openpolicyagent.org/docs/latest/configuration/#miscellaneous), OPA will use the rule at `data.system.authz.allow` as Authorization Policy. Authorization is enabled by starting OPA with the `--authorization=basic` flag, and the Authorization policy must be made available to the OPA runtime either through a bundle (via the `--bundle` flag or through [discovery](https://www.openpolicyagent.org/docs/latest/management-discovery/)) or as an individual module via the command-line.\n\nA trivial Authorization Policy example:\n\n```rego\npackage system.authz\n\nallowed_paths := [\n\t[\"v1\", \"data\", \"policy1\", \"allow\"],\n\t[\"v1\", \"data\", \"policy2\", \"allow\"],\n\t...\n]\n\nallow if {\n\tinput.path in allowed_paths\n}\n```\n\n**Note:** configuring an Authorization Policy in OPA isn't the only way to protect against malicious request paths. Path validation and sanitisation can also be performed by connecting clients and 3rd party intermediaries, such as API gateways, reverse proxies, etc.",
+        "severity": "high",
+        "identifiers": [
+          {
+            "value": "GHSA-6m8w-jc87-6cr7",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2025-46569",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://github.com/open-policy-agent/opa/security/advisories/GHSA-6m8w-jc87-6cr7"
+          },
+          {
+            "url": "https://github.com/open-policy-agent/opa/commit/ad2063247a14711882f18c387a511fc8094aa79c"
+          },
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-46569"
+          },
+          {
+            "url": "https://pkg.go.dev/vuln/GO-2025-3660"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-6m8w-jc87-6cr7"
+          }
+        ],
+        "published_at": "2025-05-01T17:02:58Z",
+        "updated_at": "2025-05-05T22:02:33Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "go",
+              "name": "github.com/open-policy-agent/opa/v1/server"
+            },
+            "severity": "high",
+            "vulnerable_version_range": "< 1.4.0",
+            "first_patched_version": {
+              "identifier": "1.4.0"
+            }
+          },
+          {
+            "package": {
+              "ecosystem": "go",
+              "name": "github.com/open-policy-agent/opa/server"
+            },
+            "severity": "high",
+            "vulnerable_version_range": "< 1.4.0",
+            "first_patched_version": {
+              "identifier": "1.4.0"
+            }
+          },
+          {
+            "package": {
+              "ecosystem": "go",
+              "name": "github.com/open-policy-agent/opa"
+            },
+            "severity": "high",
+            "vulnerable_version_range": "< 1.4.0",
+            "first_patched_version": {
+              "identifier": "1.4.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": null,
+            "score": 0.0
+          },
+          "cvss_v4": {
+            "vector_string": "CVSS:4.0/AV:N/AC:L/AT:P/PR:L/UI:N/VC:H/VI:N/VA:H/SC:H/SI:H/SA:H",
+            "score": 7.4
+          }
+        },
+        "epss": {
+          "percentage": 0.00043,
+          "percentile": 0.12242
+        },
+        "cvss": {
+          "vector_string": null,
+          "score": 0.0
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-78",
+            "name": "Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+          },
+          {
+            "cwe_id": "CWE-94",
+            "name": "Improper Control of Generation of Code ('Code Injection')"
+          },
+          {
+            "cwe_id": "CWE-770",
+            "name": "Allocation of Resources Without Limits or Throttling"
+          }
+        ]
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "go",
+          "name": "github.com/open-policy-agent/opa"
+        },
+        "severity": "high",
+        "vulnerable_version_range": "< 1.4.0",
+        "first_patched_version": {
+          "identifier": "1.4.0"
+        }
+      },
+      "url": "https://api.github.com/repos/compliance-framework/plugin-dependabot/dependabot/alerts/3",
+      "html_url": "https://github.com/compliance-framework/plugin-dependabot/security/dependabot/3",
+      "created_at": "2025-05-05T22:04:04Z",
+      "updated_at": "2025-05-05T22:04:04Z",
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": null,
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 2,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "go",
+          "name": "golang.org/x/net"
+        },
+        "manifest_path": "go.mod",
+        "scope": "runtime",
+        "relationship": "unknown"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-vvgc-356p-c3xw",
+        "cve_id": "CVE-2025-22872",
+        "summary": "golang.org/x/net vulnerable to Cross-site Scripting",
+        "description": "The tokenizer incorrectly interprets tags with unquoted attribute values that end with a solidus character (/) as self-closing. When directly using Tokenizer, this can result in such tags incorrectly being marked as self-closing, and when using the Parse functions, this can result in content following such tags as being placed in the wrong scope during DOM construction, but only when tags are in foreign content (e.g. <math>, <svg>, etc contexts).",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-vvgc-356p-c3xw",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2025-22872",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-22872"
+          },
+          {
+            "url": "https://go.dev/cl/662715"
+          },
+          {
+            "url": "https://go.dev/issue/73070"
+          },
+          {
+            "url": "https://groups.google.com/g/golang-announce/c/ezSKR9vqbqA"
+          },
+          {
+            "url": "https://pkg.go.dev/vuln/GO-2025-3595"
+          },
+          {
+            "url": "https://security.netapp.com/advisory/ntap-20250516-0007"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-vvgc-356p-c3xw"
+          }
+        ],
+        "published_at": "2025-04-16T19:22:51Z",
+        "updated_at": "2025-05-17T18:49:26Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "go",
+              "name": "golang.org/x/net"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": "< 0.38.0",
+            "first_patched_version": {
+              "identifier": "0.38.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": null,
+            "score": 0.0
+          },
+          "cvss_v4": {
+            "vector_string": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:P/VC:N/VI:N/VA:N/SC:L/SI:L/SA:N",
+            "score": 5.3
+          }
+        },
+        "epss": {
+          "percentage": 0.00019,
+          "percentile": 0.03271
+        },
+        "cvss": {
+          "vector_string": null,
+          "score": 0.0
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-79",
+            "name": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+          }
+        ]
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "go",
+          "name": "golang.org/x/net"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": "< 0.38.0",
+        "first_patched_version": {
+          "identifier": "0.38.0"
+        }
+      },
+      "url": "https://api.github.com/repos/compliance-framework/plugin-dependabot/dependabot/alerts/2",
+      "html_url": "https://github.com/compliance-framework/plugin-dependabot/security/dependabot/2",
+      "created_at": "2025-04-16T23:08:58Z",
+      "updated_at": "2025-07-09T08:34:28Z",
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2025-07-09T08:34:28Z",
+      "auto_dismissed_at": null
+    },
+    {
+      "number": 1,
+      "state": "fixed",
+      "dependency": {
+        "package": {
+          "ecosystem": "go",
+          "name": "golang.org/x/net"
+        },
+        "manifest_path": "go.mod",
+        "scope": "runtime",
+        "relationship": "unknown"
+      },
+      "security_advisory": {
+        "ghsa_id": "GHSA-qxp5-gwg8-xv66",
+        "cve_id": "CVE-2025-22870",
+        "summary": "HTTP Proxy bypass using IPv6 Zone IDs in golang.org/x/net",
+        "description": "Matching of hosts against proxy patterns can improperly treat an IPv6 zone ID as a hostname component. For example, when the NO_PROXY environment variable is set to \"*.example.com\", a request to \"[::1%25.example.com]:80` will incorrectly match and not be proxied.",
+        "severity": "medium",
+        "identifiers": [
+          {
+            "value": "GHSA-qxp5-gwg8-xv66",
+            "type": "GHSA"
+          },
+          {
+            "value": "CVE-2025-22870",
+            "type": "CVE"
+          }
+        ],
+        "references": [
+          {
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-22870"
+          },
+          {
+            "url": "https://go.dev/cl/654697"
+          },
+          {
+            "url": "https://go.dev/issue/71984"
+          },
+          {
+            "url": "https://pkg.go.dev/vuln/GO-2025-3503"
+          },
+          {
+            "url": "http://www.openwall.com/lists/oss-security/2025/03/07/2"
+          },
+          {
+            "url": "https://security.netapp.com/advisory/ntap-20250509-0007"
+          },
+          {
+            "url": "https://github.com/advisories/GHSA-qxp5-gwg8-xv66"
+          }
+        ],
+        "published_at": "2025-03-12T22:06:40Z",
+        "updated_at": "2025-05-09T21:31:54Z",
+        "withdrawn_at": null,
+        "vulnerabilities": [
+          {
+            "package": {
+              "ecosystem": "go",
+              "name": "golang.org/x/net"
+            },
+            "severity": "medium",
+            "vulnerable_version_range": "< 0.36.0",
+            "first_patched_version": {
+              "identifier": "0.36.0"
+            }
+          }
+        ],
+        "cvss_severities": {
+          "cvss_v3": {
+            "vector_string": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:L",
+            "score": 4.4
+          },
+          "cvss_v4": {
+            "vector_string": null,
+            "score": 0.0
+          }
+        },
+        "epss": {
+          "percentage": 0.00015,
+          "percentile": 0.02036
+        },
+        "cvss": {
+          "vector_string": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:L",
+          "score": 4.4
+        },
+        "cwes": [
+          {
+            "cwe_id": "CWE-20",
+            "name": "Improper Input Validation"
+          },
+          {
+            "cwe_id": "CWE-115",
+            "name": "Misinterpretation of Input"
+          }
+        ]
+      },
+      "security_vulnerability": {
+        "package": {
+          "ecosystem": "go",
+          "name": "golang.org/x/net"
+        },
+        "severity": "medium",
+        "vulnerable_version_range": "< 0.36.0",
+        "first_patched_version": {
+          "identifier": "0.36.0"
+        }
+      },
+      "url": "https://api.github.com/repos/compliance-framework/plugin-dependabot/dependabot/alerts/1",
+      "html_url": "https://github.com/compliance-framework/plugin-dependabot/security/dependabot/1",
+      "created_at": "2025-04-11T15:01:31Z",
+      "updated_at": "2025-07-09T08:34:28Z",
+      "dismissed_at": null,
+      "dismissed_by": null,
+      "dismissed_reason": null,
+      "dismissed_comment": null,
+      "fixed_at": "2025-07-09T08:34:28Z",
+      "auto_dismissed_at": null
+    }
+  ],
+  "security_team_members": [
+    {
+      "login": "ssherar",
+      "id": 1219778,
+      "node_id": "MDQ6VXNlcjEyMTk3Nzg=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1219778?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/ssherar",
+      "html_url": "https://github.com/ssherar",
+      "followers_url": "https://api.github.com/users/ssherar/followers",
+      "following_url": "https://api.github.com/users/ssherar/following{/other_user}",
+      "gists_url": "https://api.github.com/users/ssherar/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/ssherar/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/ssherar/subscriptions",
+      "organizations_url": "https://api.github.com/users/ssherar/orgs",
+      "repos_url": "https://api.github.com/users/ssherar/repos",
+      "events_url": "https://api.github.com/users/ssherar/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/ssherar/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    {
+      "login": "chris-cmsoft",
+      "id": 20104367,
+      "node_id": "MDQ6VXNlcjIwMTA0MzY3",
+      "avatar_url": "https://avatars.githubusercontent.com/u/20104367?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chris-cmsoft",
+      "html_url": "https://github.com/chris-cmsoft",
+      "followers_url": "https://api.github.com/users/chris-cmsoft/followers",
+      "following_url": "https://api.github.com/users/chris-cmsoft/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chris-cmsoft/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chris-cmsoft/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chris-cmsoft/subscriptions",
+      "organizations_url": "https://api.github.com/users/chris-cmsoft/orgs",
+      "repos_url": "https://api.github.com/users/chris-cmsoft/repos",
+      "events_url": "https://api.github.com/users/chris-cmsoft/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chris-cmsoft/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    }
+  ]
+}
