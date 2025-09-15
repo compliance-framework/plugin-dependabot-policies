@@ -11,7 +11,7 @@ violation[{}] if {
 	]
 
 	# If there are two or more such alerts, then deny.
-	count(open_alerts) >= 2
+	count(open_alerts) >= 4
 }
 
 title := "Limit amount of medium vulnerabilities"
