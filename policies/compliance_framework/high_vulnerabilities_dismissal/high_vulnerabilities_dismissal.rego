@@ -18,6 +18,5 @@ violation[{}] if {
 	count(open_alerts) >= 1
 }
 
-
 title := "Limit amount of 'high' vulnerabilities that have not been dismissed within 10 working days"
 description := "'High' severity vulnerabilities should be dismissed within two weeks (10 workign days) to avoid a wide footprint of risk"

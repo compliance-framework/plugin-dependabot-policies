@@ -18,6 +18,5 @@ violation[{}] if {
 	count(open_alerts) >= 1
 }
 
-
 title := "Limit amount of critical vulnerabilities within 5 working days"
 description := "Critical severity vulnerabilities should dealth with within five working days to avoid a wide footprint of risk"

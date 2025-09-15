@@ -21,6 +21,5 @@ violation[{}] if {
 	count(open_alerts) >= 1
 }
 
-
 title := "Limit amount of 'medium' vulnerabilities that have not been dismissed within one month"
 description := "'Medium' severity vulnerabilities should be dismissed within one month (20 working days) to avoid a wide footprint of risk"

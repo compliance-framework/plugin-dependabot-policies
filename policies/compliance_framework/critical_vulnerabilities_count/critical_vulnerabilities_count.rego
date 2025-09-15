@@ -14,6 +14,5 @@ violation[{}] if {
 	count(open_alerts) >= 2
 }
 
-
 title := "Limit amount of critical vulnerabilities"
 description := "Critical severity vulnerabilities should be kept within reasonable limits to avoid a wide footprint of risk"

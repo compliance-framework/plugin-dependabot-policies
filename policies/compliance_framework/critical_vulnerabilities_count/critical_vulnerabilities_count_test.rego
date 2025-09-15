@@ -9,7 +9,7 @@ test_too_many_critical_vulnerabilities_fail if {
 		{
 			"state": "open",
 			"security_vulnerability": {"severity": "critical"},
-		}
+		},
 	]}
 }
 
