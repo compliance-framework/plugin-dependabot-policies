@@ -6,7 +6,7 @@ violation[{}] if {
 	working_day_now_ns := time_ext.reduce_day_ns(time.now_ns())
 	one_month_ago := working_day_now_ns - (28 * time_ext.one_day_ns)
 
-	# Build a set of medium alerts that have been open for more than 5 working days.
+	# Check there exists a medium alert that has been open for more than a month
 	some alert in input.alerts
 	alert.state == "open"
 	alert.security_vulnerability.severity == "medium"
