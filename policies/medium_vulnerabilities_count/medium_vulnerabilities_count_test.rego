@@ -28,8 +28,8 @@ test_too_many_medium_vulnerabilities_fail if {
 }
 
 test_few_medium_vulnerabilities_pass if {
-	count(medium_vulnerabilities_count.violation) == 0 with input as [{
+	count(medium_vulnerabilities_count.violation) == 0 with input as {"alerts": [{
 		"state": "open",
 		"security_vulnerability": {"severity": "medium"},
-	}]
+	}]}
 }
