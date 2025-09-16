@@ -23,7 +23,7 @@ test_too_many_medium_vulnerabilities_fail if {
 		{
 			"state": "open",
 			"security_vulnerability": {"severity": "medium"},
-		}, 
+		},
 	]}
 }
 
