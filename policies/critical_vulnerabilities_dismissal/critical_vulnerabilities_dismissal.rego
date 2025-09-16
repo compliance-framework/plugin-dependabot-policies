@@ -16,5 +16,5 @@ violation[{}] if {
 
 title := "Limit amount of critical vulnerabilities within 5 working days"
 description := `
-Critical severity vulnerabilities should dealth with within
+Critical severity vulnerabilities should be dealt with within
  five working days to avoid a wide footprint of risk`
