@@ -16,8 +16,8 @@ test_too_many_critical_vulnerabilities_fail if {
 }
 
 test_few_critical_vulnerabilities_pass if {
-	count(critical_vulnerabilities_count.violation) == 0 with input as [{
+	count(critical_vulnerabilities_count.violation) == 0 with input as {"alerts": [{
 		"state": "open",
 		"security_vulnerability": {"severity": "medium"},
-	}]
+	}]}
 }
