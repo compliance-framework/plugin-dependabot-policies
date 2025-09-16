@@ -46,7 +46,7 @@ test_alert_over_weekend_ok if {
 	now := time.parse_rfc3339_ns("2025-09-29T09:00:00Z")
 	count(critical_vulnerabilities_dismissal.violation) == 0 with input as {"alerts": [{
 		"state": "open",
-		"created_at": "2025-09-260T09:00:00Z",
+		"created_at": "2025-09-26T09:00:00Z",
 		"security_vulnerability": {"severity": "critical"},
 	}]}
 		with time.now_ns as now
