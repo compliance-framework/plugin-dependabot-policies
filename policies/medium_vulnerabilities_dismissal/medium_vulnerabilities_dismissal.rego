@@ -1,7 +1,5 @@
 package medium_vulnerabilities_dismissal
 
-import data.utils.time_ext
-
 risk_templates := [
   {
     "name": "Medium vulnerability unresolved beyond SLA",
@@ -32,9 +30,29 @@ risk_templates := [
   }
 ]
 
+one_day_ns := ((24 * 60) * 60) * 1000000000
+
+reduce_day_ns(ns) := ns if {
+	day := time.weekday(ns)
+	day != "Sunday"
+	day != "Saturday"
+}
+
+reduce_day_ns(ns) := working_day_ns if {
+	day := time.weekday(ns)
+	day == "Sunday"
+	working_day_ns := ns - (2 * one_day_ns)
+}
+
+reduce_day_ns(ns) := working_day_ns if {
+	day := time.weekday(ns)
+	day == "Saturday"
+	working_day_ns := ns - one_day_ns
+}
+
 violation[{"id": "medium_vulnerability_sla_breached"}] if {
-	working_day_now_ns := time_ext.reduce_day_ns(time.now_ns())
-	one_month_ago := working_day_now_ns - (28 * time_ext.one_day_ns)
+	working_day_now_ns := reduce_day_ns(time.now_ns())
+	one_month_ago := working_day_now_ns - (28 * one_day_ns)
 
 	# Check there exists a medium alert that has been open for more than a month
 	some alert in input.alerts
