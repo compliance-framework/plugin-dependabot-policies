@@ -33,13 +33,12 @@ risk_templates := [
 ]
 
 violation[{"id": "too_many_low_vulnerabilities"}] if {
-	open_alerts := [alert |
+	open_low_alerts := [alert |
 		some alert in input.alerts
 		alert.state == "open"
 		alert.security_vulnerability.severity == "low"
 	]
-
-	count(open_alerts) >= 10
+	count(open_low_alerts) >= 10
 }
 
 open_low_count := count([alert |

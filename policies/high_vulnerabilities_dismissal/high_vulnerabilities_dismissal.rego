@@ -60,10 +60,13 @@ working_day_now_ns := reduce_day_ns(time.now_ns())
 two_weeks_ago := working_day_now_ns - (14 * one_day_ns)
 
 violation[{"id": "high_vulnerability_sla_breached"}] if {
-	some alert in input.alerts
-	alert.state == "open"
-	alert.security_vulnerability.severity == "high"
-	time.parse_rfc3339_ns(alert.created_at) < two_weeks_ago
+	open_high_sla_breached_alerts := [alert |
+		some alert in input.alerts
+		alert.state == "open"
+		alert.security_vulnerability.severity == "high"
+		time.parse_rfc3339_ns(alert.created_at) < two_weeks_ago
+	]
+	count(open_high_sla_breached_alerts) > 0
 }
 
 open_high_sla_breached_count := count([alert |

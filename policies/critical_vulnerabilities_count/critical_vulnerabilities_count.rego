@@ -39,15 +39,12 @@ risk_templates := [
 ]
 
 violation[{"id": "too_many_critical_vulnerabilities"}] if {
-	# Build a set of alerts that are open and with a critical severity.
-	open_alerts := [alert |
+	open_critical_alerts := [alert |
 		some alert in input.alerts
 		alert.state == "open"
 		alert.security_vulnerability.severity == "critical"
 	]
-
-	# If there are 2 or more such alerts, then deny.
-	count(open_alerts) >= 2
+	count(open_critical_alerts) >= 2
 }
 
 open_critical_count := count([alert |
