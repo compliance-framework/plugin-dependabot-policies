@@ -6,7 +6,7 @@ risk_templates := [
   {
     "name": "Excessive open low vulnerabilities",
     "title": "Repository Has Exceeded the Permitted Number of Open Low Severity Vulnerabilities",
-    "statement": "Ten or more open low severity Dependabot alerts indicates that the repository has accumulated a broad vulnerability hygiene backlog. Low severity vulnerabilities are individually lower impact, but can be chained with other weaknesses and can signal that dependency maintenance is not being performed consistently.",
+    "statement": "Ten or more open low severity Dependabot alerts indicate that the repository has accumulated a broad vulnerability hygiene backlog. Low severity vulnerabilities are individually lower impact, but can be chained with other weaknesses and can signal that dependency maintenance is not being performed consistently.",
     "likelihood_hint": "low",
     "impact_hint": "moderate",
     "violation_ids": ["too_many_low_vulnerabilities"],

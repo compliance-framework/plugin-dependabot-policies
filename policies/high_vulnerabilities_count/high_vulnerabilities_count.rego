@@ -6,7 +6,7 @@ risk_templates := [
   {
     "name": "Excessive open high vulnerabilities",
     "title": "Repository Has Exceeded the Permitted Number of Open High Severity Vulnerabilities",
-    "statement": "Three or more open high severity Dependabot alerts indicates that the repository has accumulated a dangerous vulnerability backlog. High severity vulnerabilities can enable significant data exposure, privilege escalation, or service disruption, and should be remediated quickly to reduce the probability of exploitation.",
+    "statement": "Three or more open high severity Dependabot alerts indicate that the repository has accumulated a dangerous vulnerability backlog. High severity vulnerabilities can enable significant data exposure, privilege escalation, or service disruption, and should be remediated quickly to reduce the probability of exploitation.",
     "likelihood_hint": "moderate",
     "impact_hint": "high",
     "violation_ids": ["too_many_high_vulnerabilities"],
