@@ -36,18 +36,20 @@ risk_templates := [
   }
 ]
 
-violation[{"id": "dismissed_by_non_security_member"}] if {
+unauthorized_dismissal_count := count([alert |
 	input.security_team_members != null
-
 	some alert in input.alerts
+	alert.dismissed_at != null
 	in_security_team := [team_member |
 		some team_member in input.security_team_members
 		alert.dismissed_by.login == team_member.login
 	]
-
-	# Ensure there is no team member that has dismissed an alert who is not part of the security team
 	count(in_security_team) == 0
+])
+
+violation[{"id": "dismissed_by_non_security_member"}] if {
+	unauthorized_dismissal_count > 0
 }
 
 title := "Limit unauthorized vulnerability dismissal"
-description := "Vulnerabilities should not be dismissed by members who do not belong to a defined security team."
+description := sprintf("Alerts dismissed by non-security team members: %d. Dismissals should only be performed by authorized security team members.", [unauthorized_dismissal_count])

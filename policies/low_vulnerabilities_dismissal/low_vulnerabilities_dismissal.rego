@@ -61,8 +61,14 @@ violation[{"id": "low_vulnerability_sla_breached"}] if {
 	time.parse_rfc3339_ns(alert.created_at) < three_months_ago
 }
 
+open_low_sla_breached_count := count([alert |
+	some alert in input.alerts
+	alert.state == "open"
+	alert.security_vulnerability.severity == "low"
+	working_day_now_ns := reduce_day_ns(time.now_ns())
+	three_months_ago := working_day_now_ns - (84 * one_day_ns)
+	time.parse_rfc3339_ns(alert.created_at) < three_months_ago
+])
+
 title := "Limit amount of 'low' vulnerabilities that have not been dismissed within three months"
-description := `
-'Low' severity vulnerabilities should be dismissed within three months (60 working days)
- to avoid a wide footprint of risk
-`
+description := sprintf("Low severity vulnerabilities open beyond SLA (60 working days): %d. SLA threshold: 60 working days.", [open_low_sla_breached_count])

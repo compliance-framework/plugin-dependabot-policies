@@ -61,8 +61,14 @@ violation[{"id": "medium_vulnerability_sla_breached"}] if {
 	time.parse_rfc3339_ns(alert.created_at) < one_month_ago
 }
 
+open_medium_sla_breached_count := count([alert |
+	some alert in input.alerts
+	alert.state == "open"
+	alert.security_vulnerability.severity == "medium"
+	working_day_now_ns := reduce_day_ns(time.now_ns())
+	one_month_ago := working_day_now_ns - (28 * one_day_ns)
+	time.parse_rfc3339_ns(alert.created_at) < one_month_ago
+])
+
 title := "Limit amount of 'medium' vulnerabilities that have not been dismissed within one month"
-description := `
-'Medium' severity vulnerabilities should be dismissed within one month (20 working days)
- to avoid a wide footprint of risk
-`
+description := sprintf("Medium severity vulnerabilities open beyond SLA (20 working days): %d. SLA threshold: 20 working days.", [open_medium_sla_breached_count])

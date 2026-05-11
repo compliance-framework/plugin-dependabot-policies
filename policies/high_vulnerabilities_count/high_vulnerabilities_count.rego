@@ -38,15 +38,15 @@ risk_templates := [
   }
 ]
 
-violation[{"id": "too_many_high_vulnerabilities"}] if {
-	open_alerts := [alert |
+open_high_vulnerability_count := count([alert |
 		some alert in input.alerts
 		alert.state == "open"
 		alert.security_vulnerability.severity == "high"
-	]
+])
 
-	count(open_alerts) >= 3
+violation[{"id": "too_many_high_vulnerabilities"}] if {
+	open_high_vulnerability_count >= 3
 }
 
 title := "Limit amount of high vulnerabilities"
-description := `High severity vulnerabilities should be kept within reasonable limits to avoid a wide footprint of risk`
+description := sprintf("Open high severity Dependabot alert count is %d; the policy threshold is fewer than 3 open high severity alerts.", [open_high_vulnerability_count])

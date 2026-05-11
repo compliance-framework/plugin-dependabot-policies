@@ -50,8 +50,11 @@ violation[{"id": "too_many_critical_vulnerabilities"}] if {
 	count(open_alerts) >= 2
 }
 
+open_critical_count := count([alert |
+	some alert in input.alerts
+	alert.state == "open"
+	alert.security_vulnerability.severity == "critical"
+])
+
 title := "Limit amount of critical vulnerabilities"
-description := `
-Critical severity vulnerabilities should be kept within
- reasonable limits to avoid a wide footprint of risk
-`
+description := sprintf("Open critical severity alert count is %d; the policy threshold is fewer than 2 open critical severity alerts.", [open_critical_count])

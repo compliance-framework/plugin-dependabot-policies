@@ -66,8 +66,14 @@ violation[{"id": "high_vulnerability_sla_breached"}] if {
 	time.parse_rfc3339_ns(alert.created_at) < two_weeks_ago
 }
 
+open_high_sla_breached_count := count([alert |
+	some alert in input.alerts
+	alert.state == "open"
+	alert.security_vulnerability.severity == "high"
+	working_day_now_ns := reduce_day_ns(time.now_ns())
+	two_weeks_ago := working_day_now_ns - (14 * one_day_ns)
+	time.parse_rfc3339_ns(alert.created_at) < two_weeks_ago
+])
+
 title := "Limit amount of 'high' vulnerabilities that have not been dismissed within 10 working days"
-description := `
-'High' severity vulnerabilities should be dismissed within two weeks (10 working days)
- to avoid a wide footprint of risk
-`
+description := sprintf("High severity vulnerabilities open beyond SLA (10 working days): %d. SLA threshold: 10 working days.", [open_high_sla_breached_count])

@@ -43,6 +43,11 @@ violation[{"id": "too_many_medium_vulnerabilities"}] if {
 	count(open_alerts) >= 5
 }
 
+open_medium_count := count([alert |
+	some alert in input.alerts
+	alert.state == "open"
+	alert.security_vulnerability.severity == "medium"
+])
+
 title := "Limit amount of medium vulnerabilities"
-description := `Medium severity vulnerabilities should be kept within 
- 				reasonable limits to avoid a wide footprint of risk`
+description := sprintf("Open medium severity alert count is %d; the policy threshold is fewer than 5 open medium severity alerts.", [open_medium_count])

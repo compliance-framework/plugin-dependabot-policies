@@ -68,7 +68,14 @@ violation[{"id": "critical_vulnerability_sla_breached"}] if {
 	time.parse_rfc3339_ns(alert.created_at) < seven_days_ago
 }
 
+open_critical_sla_breached_count := count([alert |
+	some alert in input.alerts
+	alert.state == "open"
+	alert.security_vulnerability.severity == "critical"
+	working_day_now_ns := reduce_day_ns(time.now_ns())
+	seven_days_ago := working_day_now_ns - (7 * one_day_ns)
+	time.parse_rfc3339_ns(alert.created_at) < seven_days_ago
+])
+
 title := "Limit amount of critical vulnerabilities within 5 working days"
-description := `
-Critical severity vulnerabilities should be dealt with within
- five working days to avoid a wide footprint of risk`
+description := sprintf("Critical severity vulnerabilities open beyond SLA (5 working days): %d. SLA threshold: 5 working days.", [open_critical_sla_breached_count])
