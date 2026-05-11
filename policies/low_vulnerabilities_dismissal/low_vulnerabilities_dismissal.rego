@@ -50,10 +50,10 @@ reduce_day_ns(ns) := working_day_ns if {
 	working_day_ns := ns - one_day_ns
 }
 
-violation[{"id": "low_vulnerability_sla_breached"}] if {
-	working_day_now_ns := reduce_day_ns(time.now_ns())
-	three_months_ago := working_day_now_ns - (84 * one_day_ns)
+working_day_now_ns := reduce_day_ns(time.now_ns())
+three_months_ago := working_day_now_ns - (84 * one_day_ns)
 
+violation[{"id": "low_vulnerability_sla_breached"}] if {
 	# Check there exists a low alert that has been open for more than 3 months (60 working days).
 	some alert in input.alerts
 	alert.state == "open"
@@ -65,8 +65,6 @@ open_low_sla_breached_count := count([alert |
 	some alert in input.alerts
 	alert.state == "open"
 	alert.security_vulnerability.severity == "low"
-	working_day_now_ns := reduce_day_ns(time.now_ns())
-	three_months_ago := working_day_now_ns - (84 * one_day_ns)
 	time.parse_rfc3339_ns(alert.created_at) < three_months_ago
 ])
 
