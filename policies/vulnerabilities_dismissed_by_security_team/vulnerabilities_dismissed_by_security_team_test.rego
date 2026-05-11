@@ -42,3 +42,14 @@ test_empty_security_team_dismissed_vulnerability_violation if {
 		"security_team_members": [],
 	}
 }
+
+test_non_dismissed_alert_no_violation if {
+	count(vulnerabilities_dismissed_by_security_team.violation) == 0 with input as {
+		"alerts": [{
+			"state": "open",
+			"dismissed_at": null,
+			"dismissed_by": {"login": "michael"},
+		}],
+		"security_team_members": [{"login": "jon"}],
+	}
+}
