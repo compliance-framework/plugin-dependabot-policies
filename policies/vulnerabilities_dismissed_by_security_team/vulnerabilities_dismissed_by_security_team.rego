@@ -44,6 +44,7 @@ security_team_logins := {team_member.login |
 unauthorized_dismissed_alerts := [alert |
 	input.security_team_members != null
 	some alert in input.alerts
+	alert.state == "dismissed"
 	alert.dismissed_at != null
 	not alert.dismissed_by.login in security_team_logins
 ]
