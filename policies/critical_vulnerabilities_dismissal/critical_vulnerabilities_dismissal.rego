@@ -59,22 +59,18 @@ reduce_day_ns(ns) := working_day_ns if {
 working_day_now_ns := reduce_day_ns(time.now_ns())
 seven_days_ago := working_day_now_ns - (7 * one_day_ns)
 
-violation[{"id": "critical_vulnerability_sla_breached"}] if {
-	open_critical_sla_breached_alerts := [alert |
-		some alert in input.alerts
-		alert.state == "open"
-		alert.security_vulnerability.severity == "critical"
-		time.parse_rfc3339_ns(alert.created_at) < seven_days_ago
-	]
-	count(open_critical_sla_breached_alerts) > 0
-}
-
-open_critical_sla_breached_count := count([alert |
+open_critical_sla_breached_alerts := [alert |
 	some alert in input.alerts
 	alert.state == "open"
 	alert.security_vulnerability.severity == "critical"
 	time.parse_rfc3339_ns(alert.created_at) < seven_days_ago
-])
+]
+
+violation[{"id": "critical_vulnerability_sla_breached"}] if {
+	count(open_critical_sla_breached_alerts) > 0
+}
+
+open_critical_sla_breached_count := count(open_critical_sla_breached_alerts)
 
 title := "Limit amount of critical vulnerabilities within 5 working days"
 description := sprintf("Critical severity vulnerabilities open beyond SLA (5 working days): %d. SLA threshold: 5 working days.", [open_critical_sla_breached_count])

@@ -53,22 +53,18 @@ reduce_day_ns(ns) := working_day_ns if {
 working_day_now_ns := reduce_day_ns(time.now_ns())
 one_month_ago := working_day_now_ns - (28 * one_day_ns)
 
-violation[{"id": "medium_vulnerability_sla_breached"}] if {
-	open_medium_sla_breached_alerts := [alert |
-		some alert in input.alerts
-		alert.state == "open"
-		alert.security_vulnerability.severity == "medium"
-		time.parse_rfc3339_ns(alert.created_at) < one_month_ago
-	]
-	count(open_medium_sla_breached_alerts) > 0
-}
-
-open_medium_sla_breached_count := count([alert |
+open_medium_sla_breached_alerts := [alert |
 	some alert in input.alerts
 	alert.state == "open"
 	alert.security_vulnerability.severity == "medium"
 	time.parse_rfc3339_ns(alert.created_at) < one_month_ago
-])
+]
+
+violation[{"id": "medium_vulnerability_sla_breached"}] if {
+	count(open_medium_sla_breached_alerts) > 0
+}
+
+open_medium_sla_breached_count := count(open_medium_sla_breached_alerts)
 
 title := "Limit amount of 'medium' vulnerabilities that have not been dismissed within one month"
 description := sprintf("Medium severity vulnerabilities open beyond SLA (20 working days): %d. SLA threshold: 20 working days.", [open_medium_sla_breached_count])

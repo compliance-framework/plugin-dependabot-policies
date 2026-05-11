@@ -38,20 +38,17 @@ risk_templates := [
   }
 ]
 
-violation[{"id": "too_many_critical_vulnerabilities"}] if {
-	open_critical_alerts := [alert |
-		some alert in input.alerts
-		alert.state == "open"
-		alert.security_vulnerability.severity == "critical"
-	]
-	count(open_critical_alerts) >= 2
-}
-
-open_critical_count := count([alert |
+open_critical_alerts := [alert |
 	some alert in input.alerts
 	alert.state == "open"
 	alert.security_vulnerability.severity == "critical"
-])
+]
+
+violation[{"id": "too_many_critical_vulnerabilities"}] if {
+	count(open_critical_alerts) >= 2
+}
+
+open_critical_count := count(open_critical_alerts)
 
 title := "Limit amount of critical vulnerabilities"
 description := sprintf("Open critical severity alert count is %d; the policy threshold is fewer than 2 open critical severity alerts.", [open_critical_count])

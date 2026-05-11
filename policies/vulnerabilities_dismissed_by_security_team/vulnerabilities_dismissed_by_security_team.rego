@@ -37,6 +37,7 @@ risk_templates := [
 ]
 
 security_team_logins := {team_member.login |
+	input.security_team_members != null
 	some team_member in input.security_team_members
 }
 

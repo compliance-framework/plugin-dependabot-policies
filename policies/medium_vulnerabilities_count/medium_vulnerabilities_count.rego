@@ -32,20 +32,17 @@ risk_templates := [
   }
 ]
 
-violation[{"id": "too_many_medium_vulnerabilities"}] if {
-	open_medium_alerts := [alert |
-		some alert in input.alerts
-		alert.state == "open"
-		alert.security_vulnerability.severity == "medium"
-	]
-	count(open_medium_alerts) >= 5
-}
-
-open_medium_count := count([alert |
+open_medium_alerts := [alert |
 	some alert in input.alerts
 	alert.state == "open"
 	alert.security_vulnerability.severity == "medium"
-])
+]
+
+violation[{"id": "too_many_medium_vulnerabilities"}] if {
+	count(open_medium_alerts) >= 5
+}
+
+open_medium_count := count(open_medium_alerts)
 
 title := "Limit amount of medium vulnerabilities"
 description := sprintf("Open medium severity alert count is %d; the policy threshold is fewer than 5 open medium severity alerts.", [open_medium_count])
