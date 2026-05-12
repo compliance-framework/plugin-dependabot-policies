@@ -41,6 +41,10 @@ security_team_logins := {team_member.login |
 	some team_member in input.security_team_members
 }
 
+skip_reason := "Security team membership data is not available, so Dependabot alert dismissals cannot be authorized against the security team." if {
+	not input.security_team_members
+}
+
 unauthorized_dismissed_alerts := [alert |
 	input.security_team_members != null
 	some alert in input.alerts
