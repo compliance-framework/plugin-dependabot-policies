@@ -50,19 +50,21 @@ reduce_day_ns(ns) := working_day_ns if {
 	working_day_ns := ns - one_day_ns
 }
 
-violation[{"id": "low_vulnerability_sla_breached"}] if {
-	working_day_now_ns := reduce_day_ns(time.now_ns())
-	three_months_ago := working_day_now_ns - (84 * one_day_ns)
+working_day_now_ns := reduce_day_ns(time.now_ns())
+three_months_ago := working_day_now_ns - (84 * one_day_ns)
 
-	# Check there exists a low alert that has been open for more than 3 months (60 working days).
+open_low_sla_breached_alerts := [alert |
 	some alert in input.alerts
 	alert.state == "open"
 	alert.security_vulnerability.severity == "low"
 	time.parse_rfc3339_ns(alert.created_at) < three_months_ago
+]
+
+violation[{"id": "low_vulnerability_sla_breached"}] if {
+	count(open_low_sla_breached_alerts) > 0
 }
 
+open_low_sla_breached_count := count(open_low_sla_breached_alerts)
+
 title := "Limit amount of 'low' vulnerabilities that have not been dismissed within three months"
-description := `
-'Low' severity vulnerabilities should be dismissed within three months (60 working days)
- to avoid a wide footprint of risk
-`
+description := sprintf("Low severity vulnerabilities open beyond SLA (60 working days): %d. SLA threshold: 60 working days.", [open_low_sla_breached_count])

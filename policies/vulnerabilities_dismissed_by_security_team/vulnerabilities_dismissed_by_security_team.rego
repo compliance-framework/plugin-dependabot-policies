@@ -36,18 +36,28 @@ risk_templates := [
   }
 ]
 
-violation[{"id": "dismissed_by_non_security_member"}] if {
+security_team_logins := {team_member.login |
 	input.security_team_members != null
-
-	some alert in input.alerts
-	in_security_team := [team_member |
-		some team_member in input.security_team_members
-		alert.dismissed_by.login == team_member.login
-	]
-
-	# Ensure there is no team member that has dismissed an alert who is not part of the security team
-	count(in_security_team) == 0
+	some team_member in input.security_team_members
 }
 
+skip_reason := "Security team membership data is not available, so Dependabot alert dismissals cannot be authorized against the security team." if {
+	not input.security_team_members
+}
+
+unauthorized_dismissed_alerts := [alert |
+	input.security_team_members != null
+	some alert in input.alerts
+	alert.state == "dismissed"
+	alert.dismissed_at != null
+	not alert.dismissed_by.login in security_team_logins
+]
+
+violation[{"id": "dismissed_by_non_security_member"}] if {
+	count(unauthorized_dismissed_alerts) > 0
+}
+
+unauthorized_dismissal_count := count(unauthorized_dismissed_alerts)
+
 title := "Limit unauthorized vulnerability dismissal"
-description := "Vulnerabilities should not be dismissed by members who do not belong to a defined security team."
+description := sprintf("Alerts dismissed by non-security team members: %d. Dismissals should only be performed by authorized security team members.", [unauthorized_dismissal_count])
