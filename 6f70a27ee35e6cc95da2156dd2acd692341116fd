@@ -6,3 +6,7 @@ lisa-design:
 - equals-over-count is fixed only where the counted value is an array comprehension (always defined), never on input fields.
 - violation[{...}] if heads (partial objects) are not switched to contains: that changes the output shape.
 - Behaviour proof: opa eval 'data with time.now_ns as <fixed>' on main vs branch for 39 extracted test inputs + 20 hand-made ones; non-test keys identical, all 49 test_* true on both sides.
+
+lisa-selfreview:
+pass 1: approve, no findings in the diff (packs core, rego-policy). opa fmt/check --strict/test (49/49)/build, regal (0 errors) and actionlint clean.
+Pre-existing, not changed (out of scope): packages are not compliance_framework.<name> (REGO-PKG-001); no # METADATA blocks (REGO-META-001); README is a stale copy of the SSH policies README (REGO-README-001); Makefile `test` runs `@OPA test` (uppercase) and `validate` lacks --strict; security_team_members=false yields skip_reason and a violation together.
