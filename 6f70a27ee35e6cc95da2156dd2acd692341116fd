@@ -1,0 +1,8 @@
+lisa-design:
+- ci.yml is copied verbatim from mock-plugin-policies-1 (workflows v1.5.1); policies live in policies/, so no directory input.
+- push.yaml, push.yml and test.yml are deleted: both push files only called test.yml; release.yml/build-and-upload.yml never referenced them and are untouched.
+- Regal prefer-string-interpolation (12) is left: $"..." template strings need a newer OPA than older agents in the field may embed, and the bundle is evaluated by the agent's OPA.
+- Regal equals-over-count is left in the *_test.rego files: the spec forbids rewriting existing test assertions for style.
+- equals-over-count is fixed only where the counted value is an array comprehension (always defined), never on input fields.
+- violation[{...}] if heads (partial objects) are not switched to contains: that changes the output shape.
+- Behaviour proof: opa eval 'data with time.now_ns as <fixed>' on main vs branch for 39 extracted test inputs + 20 hand-made ones; non-test keys identical, all 49 test_* true on both sides.
